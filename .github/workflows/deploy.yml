@@ -1,0 +1,33 @@
+name: CI/CD Hospital App
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Descargar codigo del repositorio
+        uses: actions/checkout@v4
+
+      - name: Iniciar sesion en Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Construir y publicar imagen Docker
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/hospital-app:latest
+
+      - name: Desplegar en Kubernetes local
+        run: |
+          kubectl apply -f k8s/deployment.yaml
+          kubectl rollout restart deployment/hospital-deployment
+          kubectl rollout status deployment/hospital-deployment
+
